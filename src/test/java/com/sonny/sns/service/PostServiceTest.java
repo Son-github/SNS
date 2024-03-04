@@ -2,6 +2,8 @@ package com.sonny.sns.service;
 
 import com.sonny.sns.exception.ErrorCode;
 import com.sonny.sns.exception.SnsApplicationException;
+import com.sonny.sns.fixture.PostEntityFixture;
+import com.sonny.sns.fixture.UserEntityFixture;
 import com.sonny.sns.model.Entity.PostEntity;
 import com.sonny.sns.model.Entity.UserEntity;
 import com.sonny.sns.repository.PostEntityRepository;
@@ -58,5 +60,62 @@ public class PostServiceTest {
 
         SnsApplicationException e = Assertions.assertThrows(SnsApplicationException.class, () -> postService.create(title, body, userName));
         Assertions.assertEquals(ErrorCode.USER_NOT_FOUND, e.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("포스트 수정이 성공한 경우")
+    void whenDoPostModifying_givenLoginInformation_thenReturnOk() {
+        String title = "title";
+        String body = "body";
+        String userName = "userName";
+        Integer postId = 1;
+
+        PostEntity postEntity = PostEntityFixture.get(userName, postId, 1);
+        UserEntity userEntity = postEntity.getUser();
+
+        when(userEntityRepository.findByUserName(userName)).thenReturn(Optional.of(userEntity)); // Optional은 값이 없는 경우를 표현하기 위해 쓰는 클래스 => Optional은 값이 존재할 수 도 있고, 없을 수도 있다. 이는 NullPointException 예외를 방지 할 수 있고, 코드의 안정성을 높이며 가독성을 향상시킨다.
+        when(postEntityRepository.findById(postId)).thenReturn(Optional.of(postEntity));
+        when(postEntityRepository.saveAndFlush(any())).thenReturn(postEntity);
+
+        Assertions.assertDoesNotThrow(() -> postService.modify(title, body, userName, postId));
+
+    }
+
+    @Test
+    @DisplayName("포스트 수정시 포스트가 존재하지 않는 경우")
+    void whenDoPostModifying_givenLoginInformation_thenReturnError() {
+        String title = "title";
+        String body = "body";
+        String userName = "userName";
+        Integer postId = 1;
+
+        PostEntity postEntity = PostEntityFixture.get(userName, postId, 1);
+        UserEntity userEntity = postEntity.getUser();
+
+        when(userEntityRepository.findByUserName(userName)).thenReturn(Optional.of(userEntity)); // Optional은 값이 없는 경우를 표현하기 위해 쓰는 클래스 => Optional은 값이 존재할 수 도 있고, 없을 수도 있다. 이는 NullPointException 예외를 방지 할 수 있고, 코드의 안정성을 높이며 가독성을 향상시킨다.
+        when(postEntityRepository.findById(postId)).thenReturn(Optional.empty());
+
+        SnsApplicationException e = Assertions.assertThrows(SnsApplicationException.class, () -> postService.modify(title, body, userName, postId));
+        Assertions.assertEquals(ErrorCode.POST_NOT_FOUND, e.getErrorCode());
+
+    }
+
+    @Test
+    @DisplayName("포스트 수정시 권한이 없는 경우")
+    void whenDoPostModifying_givenNotAuthorization_thenReturnError() {
+        String title = "title";
+        String body = "body";
+        String userName = "userName";
+        Integer postId = 1;
+
+        PostEntity postEntity = PostEntityFixture.get(userName, postId, 1);
+        UserEntity writer = UserEntityFixture.get("userName1", "password", 2);
+
+        when(userEntityRepository.findByUserName(userName)).thenReturn(Optional.of(writer)); // Optional은 값이 없는 경우를 표현하기 위해 쓰는 클래스 => Optional은 값이 존재할 수 도 있고, 없을 수도 있다. 이는 NullPointException 예외를 방지 할 수 있고, 코드의 안정성을 높이며 가독성을 향상시킨다.
+        when(postEntityRepository.findById(postId)).thenReturn(Optional.of(postEntity));
+
+        SnsApplicationException e = Assertions.assertThrows(SnsApplicationException.class, () -> postService.modify(title, body, userName, postId));
+        Assertions.assertEquals(ErrorCode.INVALID_PERMISSION, e.getErrorCode());
+
     }
 }
