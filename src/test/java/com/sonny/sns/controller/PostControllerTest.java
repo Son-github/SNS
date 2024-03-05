@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -26,8 +27,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -122,10 +122,9 @@ public class PostControllerTest {
 
         mockMvc.perform(put("/api/v1/posts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        // TODO: add request body
                         .content(objectMapper.writeValueAsBytes(new PostCreateRequest(title, body)))
                 ).andDo(print())
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test
@@ -142,7 +141,7 @@ public class PostControllerTest {
                         // TODO: add request body
                         .content(objectMapper.writeValueAsBytes(new PostCreateRequest(title, body)))
                 ).andDo(print())
-                .andExpect(status().isNotFound());
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test
@@ -169,22 +168,71 @@ public class PostControllerTest {
     @WithMockUser // 로그인이 된 경우
     @DisplayName("포스트 삭제시 작성자와 삭제 요청자가 다를 경우")
     void whenDoPostDeleting_givenWrongLogin_thenReturnError() throws Exception {
-        // TODO: mocking
+        doThrow(new SnsApplicationException(ErrorCode.INVALID_PERMISSION)).when(postService).delete(any(), any());
+
         mockMvc.perform(delete("/api/v1/posts/1")
                         .contentType(MediaType.APPLICATION_JSON)
                 ).andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     @WithMockUser // 로그인이 된 경우
     @DisplayName("포스트 삭제시 삭제하려는 포스트가 존재하지 않을 경우")
     void whenDoPostDeleting_givenNoPosts_thenReturnOk() throws Exception {
-        // TODO: mocking
-        
+        doThrow(new SnsApplicationException(ErrorCode.POST_NOT_FOUND)).when(postService).delete(any(), any()); // delete가 void기 때문에 when보다는 doThrow를 쓴다.
+
         mockMvc.perform(delete("/api/v1/posts/1")
                         .contentType(MediaType.APPLICATION_JSON)
                 ).andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser // 로그인이 된 경우
+    @DisplayName("피드 목록")
+    void whenCallFeed_givenLogin_thenReturnFeed() throws Exception {
+        when(postService.list(any())).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/v1/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andDo(print())
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithAnonymousUser
+    @DisplayName("피드 목록 요청시 로그인 하지 않은 경우")
+    void whenCallFeed_givenDoNotLogin_thenReturnError() throws Exception {
+        when(postService.list(any())).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/v1/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andDo(print())
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser // 로그인이 된 경우
+    @DisplayName("자신의 피드 목록")
+    void whenCallMyFeed_givenLogin_thenReturnMyFeed() throws Exception {
+        when(postService.my(any(), any())).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/v1/posts/my")
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithAnonymousUser
+    @DisplayName("자신의 피드 목록 요청시 로그인 하지 않은 경우")
+    void whenCallMyFeed_givenDoNotLogin_thenReturnError() throws Exception {
+        when(postService.my(any(), any())).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/v1/posts/my")
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andDo(print())
+                .andExpect(status().isUnauthorized());
     }
 }
