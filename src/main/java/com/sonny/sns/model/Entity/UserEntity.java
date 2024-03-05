@@ -12,7 +12,7 @@ import java.time.Instant;
 @Entity
 @Data
 @Table(name = "\"user\"") // postgresql에는 이미 user라는 테이블이 있기 때문에 따움표를 쓴다.
-@SQLDelete(sql = "UPDATED \"user\" SET deleted_at = now() where id=?")
+@SQLDelete(sql = "UPDATE \"user\" SET deleted_at = now() where id=?")
 @Where(clause = "deleted_at is NULL")
 public class UserEntity {
     @Id
