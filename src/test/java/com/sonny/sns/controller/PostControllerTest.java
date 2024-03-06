@@ -1,9 +1,7 @@
 package com.sonny.sns.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sonny.sns.controller.request.PostCreateRequest;
-import com.sonny.sns.controller.request.UserJoinRequest;
-import com.sonny.sns.controller.request.UserLoginRequest;
+import com.sonny.sns.controller.request.*;
 import com.sonny.sns.exception.ErrorCode;
 import com.sonny.sns.exception.SnsApplicationException;
 import com.sonny.sns.fixture.PostEntityFixture;
@@ -26,7 +24,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -234,5 +231,72 @@ public class PostControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                 ).andDo(print())
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser // 로그인이 된 경우
+    @DisplayName("좋아요 기능")
+    void whenClickLikeButton_given_thenReturnOk() throws Exception {
+        mockMvc.perform(post("/api/v1/posts/1/likes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithAnonymousUser
+    @DisplayName("좋아요 버튼 클릭시 로그인 하지 않은 경우")
+    void whenClickLikeButton_givenDoNotLogin_thenReturnError() throws Exception {
+        mockMvc.perform(post("/api/v1/posts/1/likes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andDo(print())
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("좋아요 버튼 클릭시 게시물이 없는 경우")
+    void whenClickLikeButton_givenDontHaveAnyFeed_thenReturnError() throws Exception {
+        doThrow(new SnsApplicationException(ErrorCode.POST_NOT_FOUND)).when(postService).like(any(), any());
+
+        mockMvc.perform(post("/api/v1/posts/1/likes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser // 로그인이 된 경우
+    @DisplayName("댓글 기능")
+    void whenDoingComment_given_thenReturnOk() throws Exception {
+        mockMvc.perform(post("/api/v1/posts/1/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(new PostCommentRequest("comment")))
+                ).andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithAnonymousUser
+    @DisplayName("댓글 작성 시 로그인 하지 않은 경우")
+    void whenDoingComment_givenDoNotLogin_thenReturnError() throws Exception {
+        mockMvc.perform(post("/api/v1/posts/1/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(new PostCommentRequest("comment")))
+                ).andDo(print())
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("댓글 작성 시 게시물이 없는 경우")
+    void whenDoingComment_givenDontHaveAnyPost_thenReturnError() throws Exception {
+        doThrow(new SnsApplicationException(ErrorCode.POST_NOT_FOUND)).when(postService).comment(any(), any(), any());
+
+        mockMvc.perform(post("/api/v1/posts/1/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(new PostCommentRequest("comment")))
+                ).andDo(print())
+                .andExpect(status().isNotFound());
     }
 }
