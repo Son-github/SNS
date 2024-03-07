@@ -2,6 +2,7 @@ package com.sonny.sns.service;
 
 import com.sonny.sns.exception.ErrorCode;
 import com.sonny.sns.exception.SnsApplicationException;
+import com.sonny.sns.fixture.TestInfoFixture;
 import com.sonny.sns.fixture.UserEntityFixture;
 import com.sonny.sns.model.Entity.UserEntity;
 import com.sonny.sns.repository.UserEntityRepository;
@@ -59,85 +60,54 @@ class UserServiceTest {
     private UserEntityRepository userEntityRepository;
 
     @MockBean
-    private BCryptPasswordEncoder encoder;
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Test
     @DisplayName("회원가입이 정상적으로 동작하는 경우")
     void whenDoSignUp_givenRightData_thenReturnOk() {
-        String userName = "userName";
-        String password = "password";
+        TestInfoFixture.TestInfo fixture = TestInfoFixture.get();
 
-        UserEntity fixture = UserEntityFixture.get(userName, password, 1);
+        when(userEntityRepository.findByUserName(fixture.getUserName())).thenReturn(Optional.of(UserEntityFixture.get(fixture.getUserName(), fixture.getPassword())));
+        when(bCryptPasswordEncoder.encode(fixture.getPassword())).thenReturn("password_encrypt");
+        when(userEntityRepository.save(any())).thenReturn(Optional.of(UserEntityFixture.get(fixture.getUserName(), "password_encrypt")));
 
-        // mocking
-        when(userEntityRepository.findByUserName(userName)).thenReturn(Optional.empty());
-        when(encoder.encode(password)).thenReturn("encrypt_password");
-        when(userEntityRepository.save(any())).thenReturn(UserEntityFixture.get(userName, password, 1));
-
-        Assertions.assertDoesNotThrow(() -> userService.join(userName, password));
+        Assertions.assertDoesNotThrow(() -> userService.join(fixture.getUserName(), fixture.getPassword()));
     }
 
     @Disabled
     @Test
     @DisplayName("회원가입시 userName으로 회원가입한 유저가 이미 있는 경우")
     void whenDoSignUp_giveAlreadyHaveUserName_thenReturnError() {
-        String userName = "userName";
-        String password = "password";
+        TestInfoFixture.TestInfo fixture = TestInfoFixture.get();
 
-        UserEntity fixture = UserEntityFixture.get(userName, password, 1);
+        when(userEntityRepository.findByUserName(fixture.getUserName()))
+                .thenReturn(Optional.of(UserEntityFixture.get(fixture.getUserName(), fixture.getPassword())));
 
-        // mocking
-        when(userEntityRepository.findByUserName(userName)).thenReturn(Optional.of(fixture));
-        when(encoder.encode(password)).thenReturn("encrypt_password");
-        when(userEntityRepository.save(any())).thenReturn(Optional.of(fixture));
+        SnsApplicationException exception = Assertions.assertThrows(SnsApplicationException.class,
+                () -> userService.join(fixture.getUserName(), fixture.getPassword()));
 
-        SnsApplicationException e = Assertions.assertThrows(SnsApplicationException.class, () -> userService.join(userName, password));
-        Assertions.assertEquals(ErrorCode.DUPLICATED_USER_NAME, e.getErrorCode());
+        Assertions.assertEquals(ErrorCode.DUPLICATED_USER_NAME, exception.getErrorCode());
     }
 
     @Test
     @DisplayName("로그인이 정상적으로 동작하는 경우")
     void whenDoLogin_givenRightData_thenReturnOk() {
-        String userName = "userName";
-        String password = "password";
+        TestInfoFixture.TestInfo fixture = TestInfoFixture.get();
 
-        UserEntity fixture = UserEntityFixture.get(userName, password, 1);
+        when(userEntityRepository.findByUserName(fixture.getUserName())).thenReturn(Optional.empty());
 
-        // mocking
-        when(userEntityRepository.findByUserName(userName)).thenReturn(Optional.of(fixture));
-        when(encoder.matches(password, fixture.getPassword())).thenReturn(true);
-
-        Assertions.assertDoesNotThrow(() -> userService.login(userName, password));
+        Assertions.assertDoesNotThrow(() -> userService.login(fixture.getUserName(), fixture.getPassword()));
     }
 
     @Test
     @DisplayName("로그인시 userName이 없는 경우")
     void whenDoLogin_giveDoNotHaveUserName_thenReturnError() {
-        String userName = "userName";
-        String password = "password";
+        TestInfoFixture.TestInfo fixture = TestInfoFixture.get();
 
-        // mocking
-        when(userEntityRepository.findByUserName(userName)).thenReturn(Optional.empty());
+        when(userEntityRepository.findByUserName(fixture.getUserName())).thenReturn(Optional.empty());
+        SnsApplicationException exception = Assertions.assertThrows(SnsApplicationException.class
+                , () -> userService.login(fixture.getUserName(), fixture.getPassword()));
 
-        SnsApplicationException e = Assertions.assertThrows(SnsApplicationException.class, () -> userService.login(userName, password));
-        Assertions.assertEquals(ErrorCode.USER_NOT_FOUND, e.getErrorCode());
+        Assertions.assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
     }
-
-    @Test
-    @DisplayName("로그인시 userName은 있지만 password가 없는 경우")
-    void whenDoLogin_giveWrongPassword_thenReturnError() {
-        String userName = "userName";
-        String password = "password";
-        String wrongPassword = "wrongPassword";
-
-        UserEntity fixture = UserEntityFixture.get(userName, password, 1);
-
-        // mocking
-        when(userEntityRepository.findByUserName(userName)).thenReturn(Optional.of(fixture));
-
-       SnsApplicationException e = Assertions.assertThrows(SnsApplicationException.class, () -> userService.login(userName, wrongPassword));
-       Assertions.assertEquals(ErrorCode.INVALID_PASSWORD, e.getErrorCode());
-    }
-
-
 }

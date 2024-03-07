@@ -25,7 +25,7 @@ public class AuthenticationConfig {
 
     private final UserService userService;
     @Value("${jwt.secret-key}")
-    private String key;
+    private String secretKey;
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() throws Exception{
@@ -37,10 +37,11 @@ public class AuthenticationConfig {
         http.csrf(CsrfConfigurer::disable)
                 .authorizeHttpRequests(HttpRequest -> HttpRequest
                         .requestMatchers("/api/*/users/join", "/api/*/users/login").permitAll()
-                        .requestMatchers("/api/**").authenticated())
+                        .requestMatchers("/api/**").authenticated()
+                        .anyRequest().permitAll())
                 .sessionManagement(SessionManagement -> SessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(new JwtTokenFilter(key, userService), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exceptionHandling -> exceptionHandling.authenticationEntryPoint(new CustomAuthenticationEntryPoint()))
+                .addFilterBefore(new JwtTokenFilter(userService, secretKey), UsernamePasswordAuthenticationFilter.class)
         ;
         return http.build();
     }

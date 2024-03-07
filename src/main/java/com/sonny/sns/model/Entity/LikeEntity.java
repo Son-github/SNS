@@ -11,8 +11,8 @@ import java.time.Instant;
 @Entity
 @Table(name = "\"like\"")
 @Data
-@SQLDelete(sql = "UPDATE \"like\" SET deleted_at = NOW() where id=?")
-@Where(clause = "deleted_at is NULL")
+@SQLDelete(sql = "UPDATE \"like\" SET removed_at = NOW() where id=?")
+@Where(clause = "removed_at is NULL")
 public class LikeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,17 +27,17 @@ public class LikeEntity {
     private PostEntity post;
 
     @Column(name = "registered_at")
-    private Timestamp registerAt;
+    private Timestamp registeredAt;
 
     @Column(name = "updated_at")
     private Timestamp updatedAt;
 
-    @Column(name = "deleted_at")
-    private Timestamp deletedAt;
+    @Column(name = "removed_at")
+    private Timestamp removedAt;
 
     @PrePersist // 자동으로 저장되도록
     void registeredAt() {
-        this.registerAt = Timestamp.from(Instant.now());
+        this.registeredAt = Timestamp.from(Instant.now());
     }
 
     @PreUpdate
@@ -47,8 +47,8 @@ public class LikeEntity {
 
     public static LikeEntity of(UserEntity userEntity, PostEntity postEntity){
         LikeEntity entity = new LikeEntity();
-        entity.setUser(userEntity);
         entity.setPost(postEntity);
+        entity.setUser(userEntity);
         return entity;
     }
 }

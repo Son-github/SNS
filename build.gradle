@@ -26,7 +26,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-//	implementation 'com.vladmihalcea:hibernate-types-52:2.17.3'
+	implementation 'com.vladmihalcea:hibernate-types-60:2.20.0'
 
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
@@ -39,6 +39,8 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
+	testCompileOnly 'org.projectlombok:lombok' // 테스트 의존성 추가
+	testAnnotationProcessor 'org.projectlombok:lombok' // 테스트 의존성 추가
 }
 
 tasks.named('test') {
@@ -64,8 +66,8 @@ task cleanFrontEnd(type: Delete) {
 	delete "$projectDir/front-end/static", "$projectDir/front-end/node_modules"
 }
 
-/*npmBuild.dependsOn npmInstall
+npmBuild.dependsOn npmInstall
 copyFrontEnd.dependsOn npmBuild
 compileJava.dependsOn copyFrontEnd
 
-clean.dependsOn cleanFrontEnd*/
+clean.dependsOn cleanFrontEnd

@@ -11,26 +11,22 @@ import lombok.Getter;
 
 import java.sql.Timestamp;
 
-@AllArgsConstructor
 @Data
+@AllArgsConstructor
 public class AlarmResponse {
     private Integer id;
-    private AlarmType alarmType;
-    private AlarmArgs alarmArgs;
     private String text;
     private Timestamp registeredAt;
     private Timestamp upgradeAt;
-    private Timestamp deletedAt;
+    private Timestamp removedAt;
 
     public static AlarmResponse fromAlarm(Alarm alarm){
         return new AlarmResponse(
                 alarm.getId(),
-                alarm.getAlarmType(),
-                alarm.getArgs(),
                 alarm.getAlarmType().getAlarmText(),
                 alarm.getRegisteredAt(),
                 alarm.getUpgradedAt(),
-                alarm.getDeletedAt()
+                alarm.getRemovedAt()
         );
     }
 }

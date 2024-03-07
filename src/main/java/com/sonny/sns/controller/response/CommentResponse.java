@@ -8,22 +8,16 @@ import lombok.Getter;
 
 import java.sql.Timestamp;
 
-@AllArgsConstructor
 @Data
+@AllArgsConstructor
 public class CommentResponse {
     private Integer id;
-
     private String comment;
-
     private String userName;
-
     private Integer postId;
-
-    private Timestamp registerAt;
-
+    private Timestamp registeredAt;
     private Timestamp updatedAt;
-
-    private Timestamp deletedAt;
+    private Timestamp removedAt;
 
     public static CommentResponse fromComment(Comment comment) {
         return new CommentResponse(
@@ -31,9 +25,9 @@ public class CommentResponse {
                 comment.getComment(),
                 comment.getUserName(),
                 comment.getPostId(),
-                comment.getRegisterAt(),
+                comment.getRegisteredAt(),
                 comment.getUpdatedAt(),
-                comment.getDeletedAt()
+                comment.getRemovedAt()
         );
     }
 }

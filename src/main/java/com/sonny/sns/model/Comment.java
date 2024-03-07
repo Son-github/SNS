@@ -11,28 +11,24 @@ import java.sql.Timestamp;
 @AllArgsConstructor
 public class Comment {
     private Integer id;
-
     private String comment;
-
+    private Integer userId;
     private String userName;
-
     private Integer postId;
-
-    private Timestamp registerAt;
-
+    private Timestamp registeredAt;
     private Timestamp updatedAt;
-
-    private Timestamp deletedAt;
+    private Timestamp removedAt;
 
     public static Comment fromEntity(CommentEntity entity) { // User를 Dto로 변환
         return new Comment(
                 entity.getId(),
                 entity.getComment(),
+                entity.getUser().getId(),
                 entity.getUser().getUserName(),
                 entity.getPost().getId(),
-                entity.getRegisterAt(),
+                entity.getRegisteredAt(),
                 entity.getUpdatedAt(),
-                entity.getDeletedAt()
+                entity.getRemovedAt()
         );
     }
 }

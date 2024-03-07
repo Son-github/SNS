@@ -13,22 +13,38 @@ import java.util.Date;
 @Slf4j
 public class JwtTokenUtils {
 
-    public static String getUserName(String token, String key) {
-        String username = extractClaims(token, key).get("username", String.class);
-        return username; // 여기서 String class 까지 하는 것은
+    public static Boolean validate(String token, String userName, String key) {
+        String usernameByToken = getUserName(token, key);
+        return usernameByToken.equals(userName) && !isTokenExpired(token, key);
     }
 
-    public static boolean isExpired(String token, String key) {
-        Date expiredDate = extractClaims(token, key).getExpiration();
+    public static Claims extractAllClaims(String token, String key) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey(key))
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+    }
+
+    public static String getUserName(String token, String key) {
+        return extractAllClaims(token, key).get("username", String.class);
+    }
+
+    public static Key getSigningKey(String secretKey) {
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public static boolean isTokenExpired(String token, String key) {
+        Date expiredDate = extractAllClaims(token, key).getExpiration();
         return expiredDate.before(new Date());
     }
 
-    private static Claims extractClaims(String token, String key) {
-        return Jwts.parserBuilder().setSigningKey(getKey(key))
-                .build().parseClaimsJws(token).getBody();
+    public static String generateAccessToken(String username, String key, long expiredTimeMs) {
+        return doGeneratedToken(username, expiredTimeMs, key);
     }
 
-    public static String generateToken(String userName, String key, long expiredTimeMs) {
+    public static String doGeneratedToken(String userName, long expiredTimeMs, String key) {
         Claims claims = Jwts.claims();
         claims.put("username", userName);
 
@@ -36,13 +52,8 @@ public class JwtTokenUtils {
                 .setClaims(claims)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiredTimeMs))
-                .signWith(getKey(key), SignatureAlgorithm.HS256)
+                .signWith(getSigningKey(key), SignatureAlgorithm.HS256)
                 .compact();
 
-    }
-
-    private static Key getKey(String key) {
-        byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
     }
 }

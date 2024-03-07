@@ -44,14 +44,13 @@ public class UserControllerTest {
     @Test
     @DisplayName("회원가입")
     public void whenDoSignUp_givenUserNameAndUserPassword_thenReturnOk() throws Exception {
-        String userName = "userName";
-        String password =  "userPassword";
+        String userName = "name";
+        String password =  "password";
 
         when(userService.join(userName, password)).thenReturn(Mockito.mock(User.class));
 
         mockMvc.perform(post("/api/v1/users/join")
                         .contentType(MediaType.APPLICATION_JSON)
-                        // TODO: add request body
                         .content(objectMapper.writeValueAsBytes(new UserJoinRequest(userName, password)))
                 ).andDo(print())
                 .andExpect(status().isOk());
@@ -61,35 +60,32 @@ public class UserControllerTest {
     @Test
     @DisplayName("회원가입시 이미 회원가입된 userName으로 회원가입을 하는 경우 에러 반환")
     public void whenDoSignUP_givenAlreadyUsedUserName_thenReturnError() throws Exception{
-        String userName = "userName";
-        String password =  "userPassword";
+        String userName = "name";
+        String password =  "password";
 
         when(userService.join(userName, password)).thenThrow(new SnsApplicationException(ErrorCode.DUPLICATED_USER_NAME));
 
         mockMvc.perform(post("/api/v1/users/join")
                         .contentType(MediaType.APPLICATION_JSON)
-                        // TODO: add request body
                         .content(objectMapper.writeValueAsBytes(new UserJoinRequest(userName, password)))
                 ).andDo(print())
-                .andExpect(status().isConflict());
+                .andExpect(status().is(ErrorCode.DUPLICATED_USER_NAME.getStatus().value()));
 
     }
 
     @Test
     @DisplayName("로그인")
     public void whenDoLogin_givenUserNameAndPassword_thenReturnOk() throws Exception{
-        String userName = "userName";
-        String password =  "userPassword";
+        String userName = "name";
+        String password =  "password";
 
         when(userService.login(userName, password)).thenReturn("test_token");
 
         mockMvc.perform(post("/api/v1/users/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        // TODO: add request body
                         .content(objectMapper.writeValueAsBytes(new UserLoginRequest(userName, password)))
                 ).andDo(print())
                 .andExpect(status().isOk());
-
     }
 
     @Test
@@ -105,7 +101,7 @@ public class UserControllerTest {
                         // TODO: add request body
                         .content(objectMapper.writeValueAsBytes(new UserLoginRequest(userName, password)))
                 ).andDo(print())
-                .andExpect(status().isNotFound());
+                .andExpect(status().is(ErrorCode.USER_NOT_FOUND.getStatus().value()));
 
     }
 
@@ -122,7 +118,7 @@ public class UserControllerTest {
                         // TODO: add request body
                         .content(objectMapper.writeValueAsBytes(new UserLoginRequest(userName, password)))
                 ).andDo(print())
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().is(ErrorCode.INVALID_PASSWORD.getStatus().value()));
 
     }
 

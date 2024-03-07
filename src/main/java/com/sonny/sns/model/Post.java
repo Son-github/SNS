@@ -12,19 +12,13 @@ import java.time.Instant;
 @Getter
 @AllArgsConstructor
 public class Post {
-    private Integer id;
-
+    private Integer id = null;
     private String title;
-
     private String body;
-
     private User user;
-
-    private Timestamp registerAt;
-
+    private Timestamp registeredAt;
     private Timestamp updatedAt;
-
-    private Timestamp deletedAt;
+    private Timestamp removedAt;
 
     public static Post fromEntity(PostEntity entity) { // User를 Dto로 변환
         return new Post(
@@ -32,9 +26,9 @@ public class Post {
                 entity.getTitle(),
                 entity.getBody(),
                 User.fromEntity(entity.getUser()),
-                entity.getRegisterAt(),
+                entity.getRegisteredAt(),
                 entity.getUpdatedAt(),
-                entity.getDeletedAt()
+                entity.getRemovedAt()
         );
     }
 }

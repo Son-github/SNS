@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sonny.sns.controller.request.*;
 import com.sonny.sns.exception.ErrorCode;
 import com.sonny.sns.exception.SnsApplicationException;
-import com.sonny.sns.fixture.PostEntityFixture;
-import com.sonny.sns.model.Post;
 import com.sonny.sns.service.PostService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -45,15 +44,9 @@ public class PostControllerTest {
     @WithMockUser // 로그인이 된 경우
     @DisplayName("포스트 작성")
     void whenDoPosting_givenLogin_thenReturnOk() throws Exception {
-
-        String title = "title";
-        String body = "body";
-
-
         mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/posts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        // TODO: add request body
-                        .content(objectMapper.writeValueAsBytes(new PostCreateRequest(title, body)))
+                        .content(objectMapper.writeValueAsBytes(new PostWriteRequest("title", "body")))
                 ).andDo(print())
                 .andExpect(status().isOk());
     }
@@ -62,103 +55,68 @@ public class PostControllerTest {
     @WithAnonymousUser // 로그인 되지 않은 경우를 표시할 수 있음
     @DisplayName("포스트 작성시 로그인 하지 않은 경우")
     void whenDoPosting_givenNotLogin_thenReturnError() throws Exception {
-
-        String title = "title";
-        String body = "body";
-
         mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/posts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        // TODO: add request body
-                        .content(objectMapper.writeValueAsBytes(new PostCreateRequest(title, body)))
+                        .content(objectMapper.writeValueAsBytes(new PostWriteRequest("title", "body")))
                 ).andDo(print())
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @WithMockUser // 로그인이 된 경우
-    @DisplayName("포스트 수정")
-    void whenDoPostModifying_givenLogin_thenReturnOk() throws Exception {
-        String title = "title";
-        String body = "body";
-
-        when(postService.modify(eq(title), eq(body), any(), any())).
-                thenReturn(Post.fromEntity(PostEntityFixture.get("userName", 1, 1)));
-
-        mockMvc.perform(put("/api/v1/posts/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        // TODO: add request body
-                        .content(objectMapper.writeValueAsBytes(new PostCreateRequest(title, body)))
-                ).andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().is(ErrorCode.INVALID_TOKEN.getStatus().value()));
     }
 
     @Test
     @WithAnonymousUser
     @DisplayName("포스트 수정시 로그인 하지 않은 경우")
     void whenDoPostModifying_givenNotLogin_thenReturnError() throws Exception {
-        String title = "title";
-        String body = "body";
-
-
         mockMvc.perform(put("/api/v1/posts/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        // TODO: add request body
-                        .content(objectMapper.writeValueAsBytes(new PostCreateRequest(title, body)))
+                        .content(objectMapper.writeValueAsBytes(new PostWriteRequest("title", "body")))
                 ).andDo(print())
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().is(ErrorCode.INVALID_TOKEN.getStatus().value()));
     }
 
     @Test
     @WithMockUser // 로그인이 된 경우
     @DisplayName("포스트 수정시 본인이 작성한 글이 아니라면 에러 발생")
     void whenDoPostModifying_givenNotMaker_thenReturnError() throws Exception {
-        String title = "title";
-        String body = "body";
-
-        doThrow(new SnsApplicationException(ErrorCode.INVALID_PERMISSION)).when(postService).modify(eq(title), eq(body), any(), eq(1));
-
+        doThrow(new SnsApplicationException(ErrorCode.INVALID_PERMISSION)).when(postService).modify(any(), eq(1), eq("title"), eq("body"));
         mockMvc.perform(put("/api/v1/posts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsBytes(new PostCreateRequest(title, body)))
+                        .content(objectMapper.writeValueAsBytes(new PostWriteRequest("title", "body")))
                 ).andDo(print())
-                .andExpect(status().isMethodNotAllowed());
+                .andExpect(status().is(ErrorCode.INVALID_PERMISSION.getStatus().value()));
     }
 
     @Test
     @WithMockUser // 로그인이 된 경우
     @DisplayName("포스트 수정시 수정하려는 글이 없는 경우 에러 발생")
     void whenDoPostModifying_givenNoPosting_thenReturnError() throws Exception {
-        String title = "title";
-        String body = "body";
-
-        doThrow(new SnsApplicationException(ErrorCode.POST_NOT_FOUND)).when(postService).modify(eq(title), eq(body), any(), eq(1));
-
+        doThrow(new SnsApplicationException(ErrorCode.POST_NOT_FOUND)).when(postService).modify(any(), eq(1), eq("title"), eq("body"));
         mockMvc.perform(put("/api/v1/posts")
                         .contentType(MediaType.APPLICATION_JSON)
-                        // TODO: add request body
-                        .content(objectMapper.writeValueAsBytes(new PostCreateRequest(title, body)))
+                        .content(objectMapper.writeValueAsBytes(new PostWriteRequest("title", "body")))
                 ).andDo(print())
-                .andExpect(status().isMethodNotAllowed());
+                .andExpect(status().is(ErrorCode.POST_NOT_FOUND.getStatus().value()));
     }
 
     @Test
     @WithMockUser // 로그인이 된 경우
-    @DisplayName("포스트 삭제")
-    void whenDoPostDeleting_givenLogin_thenReturnOk() throws Exception {
-        mockMvc.perform(delete("/api/v1/posts/1")
+    @DisplayName("포스트 수정시 데이터베이스 에러 발생시 에러 발생")
+    void whenDoPostModifying_givenDataBaseError_thenReturnError() throws Exception {
+        doThrow(new SnsApplicationException(ErrorCode.DATABASE_ERROR)).when(postService).modify(any(), eq(1), eq("title"), eq("body"));
+        mockMvc.perform(put("/api/v1/posts")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsBytes(new PostWriteRequest("title", "body")))
                 ).andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().is(ErrorCode.DATABASE_ERROR.getStatus().value()));
     }
 
     @Test
     @WithAnonymousUser
-    @DisplayName("포스트 삭제시 로그인 하지 않은 경우")
+    @DisplayName("포스트 삭제시 로그인 하지 않은 경우 에러 발생")
     void whenDoPostDeleting_givenNotAnything_thenReturnError() throws Exception {
         mockMvc.perform(delete("/api/v1/posts/1")
                         .contentType(MediaType.APPLICATION_JSON)
                 ).andDo(print())
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().is(ErrorCode.INVALID_TOKEN.getStatus().value()));
     }
 
     @Test
@@ -166,11 +124,11 @@ public class PostControllerTest {
     @DisplayName("포스트 삭제시 작성자와 삭제 요청자가 다를 경우")
     void whenDoPostDeleting_givenWrongLogin_thenReturnError() throws Exception {
         doThrow(new SnsApplicationException(ErrorCode.INVALID_PERMISSION)).when(postService).delete(any(), any());
-
         mockMvc.perform(delete("/api/v1/posts/1")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer token")
                         .contentType(MediaType.APPLICATION_JSON)
                 ).andDo(print())
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().is(ErrorCode.INVALID_PERMISSION.getStatus().value()));
     }
 
     @Test
@@ -178,11 +136,22 @@ public class PostControllerTest {
     @DisplayName("포스트 삭제시 삭제하려는 포스트가 존재하지 않을 경우")
     void whenDoPostDeleting_givenNoPosts_thenReturnOk() throws Exception {
         doThrow(new SnsApplicationException(ErrorCode.POST_NOT_FOUND)).when(postService).delete(any(), any()); // delete가 void기 때문에 when보다는 doThrow를 쓴다.
+        mockMvc.perform(delete("/api/v1/posts/1")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                ).andDo(print())
+                .andExpect(status().is(ErrorCode.POST_NOT_FOUND.getStatus().value()));
+    }
 
+    @Test
+    @WithMockUser // 로그인이 된 경우
+    @DisplayName("포스트 삭제시 데이터베이스 에러가 발생할 경우")
+    void whenDoPostDeleting_givenDataBaseError_thenReturnOk() throws Exception {
+        doThrow(new SnsApplicationException(ErrorCode.DATABASE_ERROR)).when(postService).delete(any(), any()); // delete가 void기 때문에 when보다는 doThrow를 쓴다.
         mockMvc.perform(delete("/api/v1/posts/1")
                         .contentType(MediaType.APPLICATION_JSON)
                 ).andDo(print())
-                .andExpect(status().isNotFound());
+                .andExpect(status().is(ErrorCode.DATABASE_ERROR.getStatus().value()));
     }
 
     @Test

@@ -7,12 +7,13 @@ import org.hibernate.annotations.Where;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Table(name = "\"post\"")
 @Data
-@SQLDelete(sql = "UPDATE \"post\" SET deleted_at = NOW() where id=?")
-@Where(clause = "deleted_at is NULL")
+@SQLDelete(sql = "UPDATE \"post\" SET removed_at = NOW() where id=?")
+@Where(clause = "removed_at is NULL")
 public class PostEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,18 +29,26 @@ public class PostEntity {
     @JoinColumn(name = "user_id")
     private UserEntity user;
 
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id")
+    private List<CommentEntity> comments;
+
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id")
+    private List<LikeEntity> likes;
+
     @Column(name = "registered_at")
-    private Timestamp registerAt;
+    private Timestamp registeredAt;
 
     @Column(name = "updated_at")
     private Timestamp updatedAt;
 
-    @Column(name = "deleted_at")
-    private Timestamp deletedAt;
+    @Column(name = "removed_at")
+    private Timestamp removedAt;
 
     @PrePersist // 자동으로 저장되도록
     void registeredAt() {
-        this.registerAt = Timestamp.from(Instant.now());
+        this.registeredAt = Timestamp.from(Instant.now());
     }
 
     @PreUpdate
@@ -47,11 +56,11 @@ public class PostEntity {
         this.updatedAt = Timestamp.from(Instant.now());
     }
 
-    public static PostEntity of(String title, String body, UserEntity userEntity){
+    public static PostEntity of(String title, String body, UserEntity user){
         PostEntity entity = new PostEntity();
         entity.setTitle(title);
         entity.setBody(body);
-        entity.setUser(userEntity);
+        entity.setUser(user);
         return entity;
     }
 }

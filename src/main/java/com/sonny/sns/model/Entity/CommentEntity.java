@@ -13,12 +13,15 @@ import java.time.Instant;
         @Index(name = "post_id_idx", columnList = "post_id")
 })
 @Data
-@SQLDelete(sql = "UPDATE \"comment\" SET deleted_at = NOW() where id=?")
-@Where(clause = "deleted_at is NULL")
+@SQLDelete(sql = "UPDATE \"comment\" SET removed_at = NOW() where id=?")
+@Where(clause = "removed_at is NULL")
 public class CommentEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
+    @Column(name = "comment")
+    private String comment;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
@@ -28,21 +31,19 @@ public class CommentEntity {
     @JoinColumn(name = "post_id")
     private PostEntity post;
 
-    @Column(name = "comment")
-    private String comment;
 
     @Column(name = "registered_at")
-    private Timestamp registerAt;
+    private Timestamp registeredAt;
 
     @Column(name = "updated_at")
     private Timestamp updatedAt;
 
-    @Column(name = "deleted_at")
-    private Timestamp deletedAt;
+    @Column(name = "removed_at")
+    private Timestamp removedAt;
 
     @PrePersist // 자동으로 저장되도록
     void registeredAt() {
-        this.registerAt = Timestamp.from(Instant.now());
+        this.registeredAt = Timestamp.from(Instant.now());
     }
 
     @PreUpdate
@@ -52,9 +53,9 @@ public class CommentEntity {
 
     public static CommentEntity of(UserEntity userEntity, PostEntity postEntity, String comment){
         CommentEntity entity = new CommentEntity();
-        entity.setUser(userEntity);
-        entity.setPost(postEntity);
         entity.setComment(comment);
+        entity.setPost(postEntity);
+        entity.setUser(userEntity);
         return entity;
     }
 }
